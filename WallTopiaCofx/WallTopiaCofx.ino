@@ -32,21 +32,19 @@
 #include <SdFat.h>
 #include <SdFatUtil.h>
 #include <SFEMP3Shield.h>
-#include <Bounce2.h> 
+#include <Bounce2.h>
 
 SdFat sd;
 SFEMP3Shield MP3player;
 
-int8_t current_track = 0;
+int8_t current_track = 1;
+boolean playerEnabled=false;
 String inputString = "";
 
-#define FX_NUM 12
+#define FX_NUM 5
 
 String fx[FX_NUM] =
-{ "fxtrack5",  "fxtrack5", "fxtrack5", "fxtrack5",
-  "fxtrack5",  "fxtrack5", "fxtrack5", "fxtrack5",
-  "fxtrack58",  "fxtrack5", "fxtrack5", "fxtrack5"
-};
+{  "X", "fxtrack1", "fxtrack2", "fxtrack3", "fxtrack4"};
 
 boolean stringComplete = false;
 
@@ -59,7 +57,7 @@ void setup() {
 
   pinMode(LEDPIN, OUTPUT);
 
-  
+
   if (!sd.begin(9, SPI_HALF_SPEED)) sd.initErrorHalt();
   if (!sd.chdir("/")) sd.errorHalt("sd.chdir");
 
@@ -73,7 +71,7 @@ void setup() {
   }
 
   MP3player.disableTestSineWave();
-  
+
   MP3player.setVolume(10, 10);
 
   Serial.println(F("Init and waiting"));
@@ -95,75 +93,70 @@ void loop()
   MP3player.available();
 #endif
 
-  serialEvent();
+ // serialEvent();
 
   if (stringComplete)
   {
 
+    if (inputString == "fxstop") //stop command
+    {
+      digitalWrite(LEDPIN, LOW);
+      stopMusic();
+      playerEnabled=false;
+      Serial.println("Player Stopped");
+    }
 
-    for (int index = 0; index < FX_NUM; index++) 
+    for (int index = 1; index < FX_NUM; index++)
     {
 
       if (inputString == fx[index])
       {
         digitalWrite(LEDPIN, HIGH);
-        MP3player.stopTrack();
-       
+        stopMusic();
+        playerEnabled=true;
+        if(current_track!=index){
+           current_track=index;
+           Serial.println("Player Stopped");
+        }
 
-    if(inputString == fx[1])    
-    {
-      MP3player.setVolume(2, 100);
-    }else
-    
-    if( 
-    (inputString == fx[2]) || 
-    (inputString == fx[3]) || 
-    (inputString == fx[4])    
-    )
-    {
-      MP3player.setVolume(100, 2);
-    }else
-    if( (inputString == fx[7]))
-    {
-      MP3player.setVolume(15, 2);
-    }else
-    if (inputString == fx[6]){
-      MP3player.setVolume(10, 100);
-    }
-    else
-    if(inputString == fx[5]) 
-    {
-      MP3player.setVolume(25, 2);
-    }
-        int ret = MP3player.playTrack(index);
-
-       // delay(1000);
-        digitalWrite(LEDPIN, LOW);
-        Serial.println (ret );
-        inputString = "";
-        stringComplete = false;
       }
 
 
-    } 
-      inputString = "";
+      }
+
+     inputString = "";
       stringComplete = false;
+    }
 
-
-    //TODO check if already played track
-    //
-
-
-
-
-
+    playLooped();
+     // inputString = "";
+     // stringComplete = false;
   }
 
 
+void playLooped(){
+  if  (playerEnabled == true){
+    if (!MP3player.isPlaying())
+    {
+      int ret = MP3player.playTrack(current_track);
+        Serial.println (ret);
+    }
 
+  }
 
 }
 
+
+
+
+void stopMusic() {
+
+  playerEnabled=false;
+  if (MP3player.isPlaying())
+  {
+    MP3player.stopTrack();
+  }
+}
 
 
 void serialEvent()
@@ -173,10 +166,12 @@ void serialEvent()
     // get the new byte:
     char inChar = (char)Serial.read();
 
-    if ((inChar == '\r') || (inChar == '\n'))
+    if (inChar == '\n')
     {
       if (inputString.length() > 0)
       {
+//        Serial.println("string:");
+//        Serial.println(inputString);
         stringComplete = true;
         break;
       }
@@ -188,4 +183,3 @@ void serialEvent()
 
   }
 }
-
