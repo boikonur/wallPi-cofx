@@ -52,11 +52,17 @@ boolean stringComplete = false;
 
 void setup() {
 
+  pinMode(LEDPIN, OUTPUT);
+  pinMode(10, OUTPUT);
+    pinMode(9, OUTPUT);
+
+
   delay(2000);
   Serial.begin(9600);
-
-  pinMode(LEDPIN, OUTPUT);
-
+while(!Serial)
+{
+  ;
+}
 
   if (!sd.begin(9, SPI_HALF_SPEED)) sd.initErrorHalt();
   if (!sd.chdir("/")) sd.errorHalt("sd.chdir");
